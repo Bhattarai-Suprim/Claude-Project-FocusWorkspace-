@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Focus Garden</title>
+<style>
+  :root {
+    --text: #2a2740;
+    --soft: rgba(255,255,255,0.78);
+    --panel-strong: rgba(255,255,255,0.86);
+    --accent: #e85a8b;
+    --accent-2: #6c8fd1;
+    --accent-3: #f1a93b;
+    --break: #4cae67;
+    --longbreak: #5a9ed1;
+    --shadow: 0 8px 30px rgba(50, 40, 80, 0.15);
+  }
+  body[data-theme="space"] {
+    --text: #e8e3ff;
+    --soft: rgba(40, 25, 70, 0.72);
+    --panel-strong: rgba(40, 25, 70, 0.78);
+    --accent: #c084fc;
+    --accent-2: #7dd3fc;
+    --accent-3: #fde68a;
+    --break: #4ade80;
+    --longbreak: #38bdf8;
+    --shadow: 0 8px 30px rgba(15, 5, 40, 0.6);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    color: var(--text);
+    transition: color 0.5s, background 0.8s;
+  }
+
+  /* ============== SCENE ============== */
+  .scene { position: fixed; inset: 0; z-index: -2; overflow: hidden; transition: background 0.8s; }
+  body[data-theme="garden"] .scene {
+    background: linear-gradient(180deg, #fce7c8 0%, #f8c8d4 28%, #c9d6f0 60%, #a8d8c5 100%);
+  }
+  body[data-theme="space"] .scene {
+    background: linear-gradient(180deg, #060220 0%, #14063a 28%, #2a0e5e 55%, #0d0530 100%);
+  }
+  .scene-garden, .scene-space { position: absolute; inset: 0; transition: opacity 0.6s; }
+  body[data-theme="garden"] .scene-space { opacity: 0; pointer-events: none; }
+  body[data-theme="space"]  .scene-garden { opacity: 0; pointer-events: none; }
+
+  /* Garden scenery */
+  .sun {
+    position: absolute; top: 8%; right: 12%;
+    width: 110px; height: 110px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #fff6d2, #ffd87a 60%, #ffb340);
+    box-shadow: 0 0 80px 20px rgba(255, 215, 122, 0.55);
+    animation: sunPulse 7s ease-in-out infinite;
+  }
+  @keyframes sunPulse { 0%,100%{transform:scale(1);box-shadow:0 0 70px 18px rgba(255,215,122,0.5);} 50%{transform:scale(1.04);box-shadow:0 0 100px 28px rgba(255,215,122,0.7);} }
+  .cloud {
+    position: absolute; background: rgba(255,255,255,0.85);
+    border-radius: 999px; filter: blur(1px);
+    box-shadow: 30px 8px 0 -4px rgba(255,255,255,0.85), -28px 6px 0 -3px rgba(255,255,255,0.85), 18px -10px 0 -6px rgba(255,255,255,0.85);
+    animation: drift linear infinite;
+  }
+  @keyframes drift { from{transform:translateX(-25vw);} to{transform:translateX(125vw);} }
+  .cloud.c1 { top: 12%; width: 110px; height: 30px; animation-duration: 90s; }
+  .cloud.c2 { top: 22%; width: 80px; height: 22px; animation-duration: 130s; animation-delay: -40s; opacity: 0.75; }
+  .cloud.c3 { top: 6%;  width: 140px; height: 36px; animation-duration: 160s; animation-delay: -80s; }
+  .cloud.c4 { top: 30%; width: 70px; height: 20px; animation-duration: 110s; animation-delay: -20s; opacity: 0.7; }
+  .hills { position: absolute; bottom: 18%; left: -5%; right: -5%; height: 28%; z-index: 0; }
+  .hill { position: absolute; bottom: 0; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .hill.back  { left: -10%; right: 30%; height: 100%; background: linear-gradient(180deg, #8db3a3 0%, #6e9b88 100%); }
+  .hill.mid   { left: 10%; right: 40%; height: 80%; background: linear-gradient(180deg, #82a892 0%, #5e8775 100%); }
+  .hill.front { left: 25%; right: -10%; height: 88%; background: linear-gradient(180deg, #79a795 0%, #57866f 100%); }
+  .hill .tree { position: absolute; width: 16px; height: 28px; background: #345e4a; border-radius: 50% 50% 40% 40% / 60% 60% 40% 40%; bottom: 60%; }
+  .ground { position: absolute; bottom: 0; left: 0; right: 0; height: 22%; background: linear-gradient(180deg, #6fa57f 0%, #3f7252 70%, #2c5640 100%); z-index: 0; }
+  .grass-layer { position: absolute; bottom: 14%; left: 0; right: 0; height: 60px; z-index: 0; pointer-events: none; }
+  .blade { position: absolute; bottom: 0; width: 4px; height: 28px; background: linear-gradient(180deg, #82b693 0%, #4a8765 100%); border-radius: 50% 50% 0 0; transform-origin: bottom center; animation: sway 4s ease-in-out infinite; }
+  @keyframes sway { 0%,100%{transform:rotate(-6deg);} 50%{transform:rotate(6deg);} }
+  .plane { position: absolute; top: 17%; left: -12%; animation: planeFly 90s linear infinite; opacity: 0; z-index: 1; }
+  @keyframes planeFly { 0%{left:-12%;opacity:0;} 3%{opacity:1;} 97%{opacity:1;} 100%{left:112%;opacity:0;} }
+  .plane .trail { position: absolute; right: 100%; top: 50%; transform: translateY(-50%); width: 90px; height: 4px; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.7)); border-radius: 999px; filter: blur(1px); }
+
+  /* Space scenery */
+  .stars-layer { position: absolute; inset: 0; pointer-events: none; }
+  .star-bg { position: absolute; width: 2px; height: 2px; background: white; border-radius: 50%; box-shadow: 0 0 4px rgba(255,255,255,0.8); animation: twinkle 3s ease-in-out infinite; }
+  @keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(0.8);} 50%{opacity:1;transform:scale(1.2);} }
+  .nebula { position: absolute; top: 10%; left: 5%; width: 50vw; height: 40vh; background: radial-gradient(ellipse at 30% 50%, rgba(192,132,252,0.35) 0%, rgba(125,211,252,0.15) 40%, transparent 70%); filter: blur(20px); z-index: 0; pointer-events: none; animation: nebShift 20s ease-in-out infinite alternate; }
+  @keyframes nebShift { from{transform:translate(0,0) scale(1);} to{transform:translate(30px,-20px) scale(1.1);} }
+  .nebula2 { position: absolute; bottom: 25%; right: 5%; width: 40vw; height: 30vh; background: radial-gradient(ellipse at 50% 50%, rgba(244,114,182,0.3) 0%, rgba(96,165,250,0.1) 50%, transparent 75%); filter: blur(24px); z-index: 0; pointer-events: none; animation: nebShift 26s ease-in-out infinite alternate-reverse; }
+  .moon-bg { position: absolute; top: 8%; right: 14%; width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 32% 32%, #fff 0%, #e8e2c8 50%, #b8ad88 100%); box-shadow: 0 0 60px 15px rgba(255,240,180,0.35), inset -16px -12px 24px rgba(80,70,40,0.25); }
+  .moon-bg::before, .moon-bg::after { content:''; position:absolute; background:rgba(100,90,60,0.18); border-radius:50%; }
+  .moon-bg::before { width:18px; height:18px; top:30%; left:25%; }
+  .moon-bg::after  { width:12px; height:12px; top:55%; left:55%; }
+  .planet-bg { position: absolute; top: 16%; left: 8%; width: 70px; height: 70px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #f0a868 0%, #d8784a 55%, #a04826 100%); box-shadow: inset -10px -8px 18px rgba(40,15,5,0.5), 0 0 30px rgba(216,120,74,0.3); }
+  .planet-bg .ring { position: absolute; top: 50%; left: 50%; width: 110px; height: 14px; transform: translate(-50%,-50%) rotate(-22deg); border-radius: 50%; border: 2px solid rgba(240,200,160,0.55); border-top-color: rgba(240,200,160,0.15); border-bottom-color: rgba(240,200,160,0.85); }
+  .shooting-star { position: absolute; top: 25%; left: -20%; width: 100px; height: 2px; background: linear-gradient(90deg, transparent, white, white); border-radius: 999px; box-shadow: 0 0 8px rgba(255,255,255,0.8); opacity: 0; animation: shoot 14s ease-in infinite; }
+  @keyframes shoot { 0%,90%{opacity:0;transform:translate(0,0) rotate(-15deg);} 91%,95%{opacity:1;} 100%{opacity:0;transform:translate(130vw,30vh) rotate(-15deg);} }
+  .moonsurface { position: absolute; bottom: -8%; left: -10%; right: -10%; height: 35%; background: radial-gradient(ellipse at 20% 0%, rgba(255,255,255,0.18) 0%, transparent 40%), radial-gradient(ellipse at 80% 0%, rgba(255,255,255,0.12) 0%, transparent 40%), linear-gradient(180deg, #4a4660 0%, #2e2a48 55%, #0f0a28 100%); border-radius: 50% 50% 0 0 / 30% 30% 0 0; box-shadow: inset 0 8px 16px rgba(255,255,255,0.06); }
+  .crater { position: absolute; border-radius: 50%; background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.08), rgba(0,0,0,0.4)); box-shadow: inset 2px 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
+
+  /* ============== CHARACTER ============== */
+  .character-wrap {
+    position: absolute;
+    left: 18vw;
+    bottom: 22vh;
+    width: 56px;
+    height: 84px;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, 0);
+    transition: left 1s linear, bottom 1s linear, opacity 0.4s;
+  }
+  .character-wrap.visible { opacity: 1; }
+  .character { display: block; overflow: visible; width: 100%; height: 100%; }
+  .character-wrap.walking .character { animation: charBob 0.45s ease-in-out infinite; }
+  @keyframes charBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
+  /* IMPORTANT: transform-box: fill-box makes transform-origin relative to each element's own bounding box. */
+  .character .leg-l,
+  .character .leg-r,
+  .character .arm {
+    transform-box: fill-box;
+    transform-origin: 50% 0%;
+  }
+  .character-wrap.walking .leg-l { animation: legSwingA 0.45s ease-in-out infinite alternate; }
+  .character-wrap.walking .leg-r { animation: legSwingB 0.45s ease-in-out infinite alternate; }
+  .character-wrap.walking .arm   { animation: armSwing  0.45s ease-in-out infinite alternate; }
+  @keyframes legSwingA { from{transform:rotate(-32deg);} to{transform:rotate(32deg);} }
+  @keyframes legSwingB { from{transform:rotate(32deg);} to{transform:rotate(-32deg);} }
+  @keyframes armSwing  { from{transform:rotate(28deg);} to{transform:rotate(-38deg);} }
+  .character .flag { opacity: 0; transition: opacity 0.4s; transform-box: fill-box; transform-origin: 0% 100%; }
+  .character-wrap.summit .flag { opacity: 1; animation: flagWave 1.4s ease-in-out infinite; }
+  @keyframes flagWave { 0%,100%{transform:skewX(0deg);} 50%{transform:skewX(-14deg);} }
+  /* Resting (during break) — character sits still */
+  .character-wrap.resting .character { animation: restBob 3s ease-in-out infinite; }
+  @keyframes restBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-1.5px);} }
+
+  /* ============== UI LAYOUT ============== */
+  .app {
+    position: relative; height: 100vh;
+    display: grid; grid-template-rows: auto auto 1fr;
+    padding: 16px 20px 0; z-index: 3; overflow: hidden;
+  }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .title { background: var(--soft); backdrop-filter: blur(8px); border-radius: 16px; padding: 8px 14px; box-shadow: var(--shadow); }
+  .title h1 { margin: 0; font-size: 18px; font-weight: 600; }
+  .title p  { margin: 2px 0 0; font-size: 11px; opacity: 0.7; }
+  .totals { display: flex; gap: 6px; flex-wrap: wrap; }
+  .total-chip {
+    background: var(--soft); backdrop-filter: blur(8px);
+    border-radius: 999px; padding: 7px 12px;
+    font-size: 12px; font-weight: 600;
+    box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 5px;
+    border: none; color: var(--text); cursor: default; font-family: inherit;
+  }
+  .total-chip.btn { cursor: pointer; transition: transform 0.15s; }
+  .total-chip.btn:hover { transform: translateY(-1px); }
+  .total-chip .emoji { font-size: 15px; }
+
+  .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; align-content: start; }
+  @media (max-width: 900px) { .cards { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--panel-strong); backdrop-filter: blur(12px);
+    border-radius: 16px; padding: 12px 14px;
+    box-shadow: var(--shadow);
+    display: flex; flex-direction: column; gap: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  body[data-theme="space"] .card { border: 1px solid rgba(192, 132, 252, 0.22); }
+  .card-head { display: flex; align-items: center; gap: 8px; }
+  .card-icon { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  body[data-theme="garden"] .icon-focus { background: #ffe1ec; }
+  body[data-theme="garden"] .icon-goals { background: #e1ffe9; }
+  body[data-theme="garden"] .icon-login { background: #fff1d6; }
+  body[data-theme="space"]  .icon-focus { background: rgba(192,132,252,0.25); }
+  body[data-theme="space"]  .icon-goals { background: rgba(125,211,252,0.25); }
+  body[data-theme="space"]  .icon-login { background: rgba(253,230,138,0.25); }
+  .card-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .reward { font-size: 10px; opacity: 0.75; background: rgba(0,0,0,0.06); padding: 2px 7px; border-radius: 999px; }
+  body[data-theme="space"] .reward { background: rgba(255,255,255,0.08); }
+  .big { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sub { font-size: 11px; opacity: 0.7; }
+  .row { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
+  button {
+    border: 1px solid rgba(0,0,0,0.06);
+    background: rgba(255,255,255,0.7);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 6px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; font-family: inherit;
+  }
+  body[data-theme="space"] button { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); }
+  button:hover { background: rgba(255,255,255,0.95); transform: translateY(-1px); }
+  body[data-theme="space"] button:hover { background: rgba(255,255,255,0.18); }
+  button.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  button.primary:hover { background: var(--accent); filter: brightness(1.08); }
+  button.primary.blue { background: var(--accent-2); border-color: var(--accent-2); color: white; }
+  body[data-theme="space"] button.primary.blue { color: #0a0628; }
+  button.primary.gold { background: var(--accent-3); border-color: var(--accent-3); color: white; }
+  body[data-theme="space"] button.primary.gold { color: #2a1a05; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* POMODORO */
+  .mode-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; opacity: 0.85;
+    padding: 2px 8px; border-radius: 999px; align-self: flex-start;
+  }
+  .mode-label.work       { background: rgba(232,90,139,0.15); color: var(--accent); }
+  .mode-label.shortBreak { background: rgba(76,174,103,0.15); color: var(--break); }
+  .mode-label.longBreak  { background: rgba(90,158,209,0.15); color: var(--longbreak); }
+  body[data-theme="space"] .mode-label.work       { background: rgba(192,132,252,0.2); color: #c084fc; }
+  body[data-theme="space"] .mode-label.shortBreak { background: rgba(74,222,128,0.2); color: #4ade80; }
+  body[data-theme="space"] .mode-label.longBreak  { background: rgba(56,189,248,0.2); color: #38bdf8; }
+  .cycle-dots { display: flex; gap: 4px; margin-top: 2px; }
+  .cycle-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,0.12); }
+  body[data-theme="space"] .cycle-dot { background: rgba(255,255,255,0.15); }
+  .cycle-dot.done { background: var(--accent); }
+  .timer-block { display: flex; align-items: center; gap: 10px; }
+  .ring-wrap { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+  .ring-wrap svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+  .ring-bg-c { fill: none; stroke: rgba(0,0,0,0.1); stroke-width: 8; }
+  body[data-theme="space"] .ring-bg-c { stroke: rgba(255,255,255,0.15); }
+  .ring-fg-c { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.4s linear, stroke 0.4s; }
+  .ring-fg-c.work       { stroke: var(--accent); }
+  .ring-fg-c.shortBreak { stroke: var(--break); }
+  .ring-fg-c.longBreak  { stroke: var(--longbreak); }
+
+  /* GOALS */
+  .goals-list { flex: 1; max-height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 4px; }
+  .goals-list::-webkit-scrollbar { width: 5px; }
+  .goals-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 999px; }
+  body[data-theme="space"] .goals-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); }
+  .goal-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: rgba(0,0,0,0.04); border-radius: 10px; font-size: 12px; }
+  body[data-theme="space"] .goal-item { background: rgba(255,255,255,0.06); }
+  .goal-item.done .goal-text { text-decoration: line-through; opacity: 0.55; }
+  .goal-check { width: 17px; height: 17px; border: 2px solid rgba(120,120,150,0.5); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; }
+  .goal-check.checked { background: var(--accent-2); border-color: var(--accent-2); }
+  .goal-check.checked::after { content: '✓'; color: white; font-size: 11px; font-weight: 700; }
+  body[data-theme="space"] .goal-check.checked::after { color: #0a0628; }
+  .goal-text { flex: 1; word-break: break-word; }
+  .goal-del { opacity: 0.4; cursor: pointer; font-size: 15px; line-height: 1; padding: 0 4px; user-select: none; }
+  .goal-del:hover { opacity: 1; color: var(--accent); }
+  .goal-add { display: flex; gap: 5px; }
+  .goal-add input { flex: 1; padding: 6px 10px; border-radius: 9px; border: 1px solid rgba(0,0,0,0.1); background: white; color: #2a2740; font-size: 12px; font-family: inherit; min-width: 0; }
+  body[data-theme="space"] .goal-add input { background: rgba(255,255,255,0.95); }
+  .goal-empty { font-size: 11px; opacity: 0.6; text-align: center; padding: 8px 0; }
+
+  /* COLLECTION */
+  .collection { position: relative; margin-top: 10px; min-height: 200px; overflow: visible; }
+  .collection-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; gap: 8px; flex-wrap: wrap; }
+  .collection-label { background: var(--soft); padding: 3px 11px; border-radius: 999px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
+  .hint-merge { font-size: 10px; opacity: 0.75; background: var(--soft); padding: 3px 10px; border-radius: 999px; box-shadow: var(--shadow); backdrop-filter: blur(8px); }
+
+  .vessel { position: relative; height: 170px; }
+  /* Garden planter */
+  body[data-theme="garden"] .vessel {
+    background:
+      linear-gradient(180deg, #5a3416 0%, #2a1808 8%, #1a0e04 14%, #2a1808 18%, transparent 18%),
+      linear-gradient(180deg, #d99668 18%, #b06530 28%, #a05528 60%, #6b3614 100%);
+    border-radius: 0 0 24px 24px;
+    box-shadow:
+      inset 0 -8px 14px rgba(0,0,0,0.3),
+      inset 0 4px 0 rgba(255,255,255,0.08),
+      0 12px 26px rgba(50,20,10,0.45);
+    border-left: 4px solid rgba(0,0,0,0.18);
+    border-right: 4px solid rgba(0,0,0,0.18);
+    margin: 16px 4px 0;
+  }
+  body[data-theme="garden"] .vessel::before {
+    content: ''; position: absolute;
+    top: -12px; left: -12px; right: -12px; height: 18px;
+    background: linear-gradient(180deg, #e8a47a 0%, #c47542 100%);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3), inset 0 2px 0 rgba(255,255,255,0.25);
+    border-left: 1px solid rgba(0,0,0,0.15);
+    border-right: 1px solid rgba(0,0,0,0.15);
+  }
+  body[data-theme="garden"] .vessel::after {
+    content: ''; position: absolute; inset: 22px 0 0 0;
+    background:
+      linear-gradient(180deg, transparent 28%, rgba(0,0,0,0.06) 28.5%, transparent 29%),
+      linear-gradient(180deg, transparent 58%, rgba(0,0,0,0.06) 58.5%, transparent 59%);
+    pointer-events: none;
+    border-radius: 0 0 24px 24px;
+  }
+  /* Space cosmos frame */
+  body[data-theme="space"] .vessel {
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(192,132,252,0.35) 0%, rgba(76,29,149,0.55) 35%, rgba(15,5,40,0.95) 80%, rgba(8,3,30,1) 100%);
+    border-radius: 16px;
+    border: 1px solid rgba(192,132,252,0.4);
+    box-shadow: inset 0 0 40px rgba(192,132,252,0.25), 0 12px 28px rgba(15,5,40,0.7);
+    margin: 16px 0 0;
+    overflow: hidden;
+  }
+  body[data-theme="space"] .vessel::before,
+  body[data-theme="space"] .vessel::after {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 8% 20%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 22% 45%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 38% 18%, rgba(255,255,255,0.7), transparent),
+      radial-gradient(1px 1px at 55% 38%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 72% 15%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 88% 50%, rgba(255,255,255,0.55), transparent),
+      radial-gradient(1px 1px at 12% 75%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 47% 78%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 82% 80%, rgba(255,255,255,0.6), transparent);
+    pointer-events: none;
+  }
+  body[data-theme="space"] .vessel::after { animation: twinkle 4s ease-in-out infinite; opacity: 0.6; }
+
+  .item { position: absolute; transform-origin: bottom center; animation: grow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; pointer-events: none; }
+  body[data-theme="garden"] .item { bottom: 4px; animation: grow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, bobItem 5s ease-in-out infinite; }
+  body[data-theme="space"] .item { animation: grow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards, floatStar 6s ease-in-out infinite; }
+  @keyframes grow { 0%{transform:scale(0) translateY(20px);opacity:0;} 100%{transform:scale(1) translateY(0);opacity:1;} }
+  @keyframes bobItem { 0%,100%{transform:rotate(-2deg);} 50%{transform:rotate(2deg);} }
+  @keyframes floatStar { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+  .item.rare { filter: drop-shadow(0 0 6px rgba(255,215,122,0.7)); }
+  body[data-theme="space"] .item.rare { filter: drop-shadow(0 0 8px rgba(192,132,252,0.85)); }
+  .empty-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0.55; font-size: 12px; pointer-events: none; z-index: 1; }
+  .empty-msg.hidden { display: none; }
+
+  /* TOAST */
+  .toast { position: fixed; top: 18px; left: 50%; transform: translateX(-50%) translateY(-20px); background: rgba(40,30,60,0.95); color: white; padding: 9px 17px; border-radius: 999px; font-size: 12px; font-weight: 600; opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* SIDE PANEL */
+  .sp-backdrop { position: fixed; inset: 0; background: rgba(20,15,40,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 50; }
+  .sp-backdrop.open { opacity: 1; pointer-events: auto; }
+  .sidepanel {
+    position: fixed; top: 0; right: 0; height: 100vh;
+    width: 380px; max-width: 100vw;
+    background: rgba(245,240,250,0.97);
+    backdrop-filter: blur(20px);
+    box-shadow: -12px 0 40px rgba(20,10,50,0.3);
+    transform: translateX(100%);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    z-index: 60;
+    display: flex; flex-direction: column;
+    color: #2a2740;
+  }
+  body[data-theme="space"] .sidepanel { background: rgba(28,18,50,0.97); color: #e8e3ff; }
+  .sidepanel.open { transform: translateX(0); }
+  .sp-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 12px; border-bottom: 1px solid rgba(0,0,0,0.06); }
+  body[data-theme="space"] .sp-header { border-bottom-color: rgba(255,255,255,0.1); }
+  .sp-header h2 { margin: 0; font-size: 17px; font-weight: 600; }
+  .sp-close { background: none; border: none; font-size: 22px; cursor: pointer; color: inherit; padding: 0 4px; line-height: 1; }
+  .sp-close:hover { transform: none; background: none; }
+  .sp-body { flex: 1; overflow-y: auto; padding: 14px 20px 24px; }
+  .sp-section { margin-bottom: 20px; }
+  .sp-section h3 { margin: 0 0 8px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; opacity: 0.65; }
+
+  /* Profile */
+  .profile-card { background: rgba(0,0,0,0.04); border-radius: 12px; padding: 12px; }
+  body[data-theme="space"] .profile-card { background: rgba(255,255,255,0.06); }
+  .profile-card .who { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .profile-card .note { font-size: 11px; opacity: 0.65; margin-bottom: 10px; }
+  .profile-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .profile-actions button { flex: 1; min-width: 80px; }
+  .signin-row { display: flex; gap: 6px; margin-top: 8px; }
+  .signin-row input { flex: 1; padding: 7px 10px; border-radius: 9px; border: 1px solid rgba(0,0,0,0.12); background: white; color: #2a2740; font-size: 12px; font-family: inherit; min-width: 0; }
+
+  /* Theme picker */
+  .theme-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .theme-opt { cursor: pointer; border: 2px solid transparent; border-radius: 12px; padding: 0; background: none; overflow: hidden; transition: all 0.2s; font-family: inherit; color: inherit; }
+  .theme-opt:hover { transform: translateY(-2px); }
+  .theme-opt.active { border-color: var(--accent); box-shadow: 0 6px 18px rgba(232,90,139,0.3); }
+  body[data-theme="space"] .theme-opt.active { box-shadow: 0 6px 18px rgba(192,132,252,0.4); }
+  .theme-preview { height: 70px; border-radius: 9px; margin-bottom: 5px; position: relative; overflow: hidden; }
+  .theme-preview.garden-preview { background: linear-gradient(180deg, #fce7c8 0%, #f8c8d4 30%, #c9d6f0 60%, #a8d8c5 100%); }
+  .theme-preview.garden-preview::after { content: ''; position: absolute; bottom: 0; left: -10%; right: -10%; height: 40%; background: linear-gradient(180deg, #79a795 0%, #3f7252 100%); border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .theme-preview.garden-preview::before { content: '☀'; position: absolute; top: 5px; right: 9px; font-size: 16px; }
+  .theme-preview.space-preview { background: linear-gradient(180deg, #060220 0%, #2a0e5e 70%, #0d0530 100%); }
+  .theme-preview.space-preview::before { content: '🌙'; position: absolute; top: 5px; right: 9px; font-size: 14px; }
+  .theme-preview.space-preview::after { content: '✦  ·  ✦  ·  ✧  ·  ✦'; position: absolute; inset: 0; color: rgba(255,255,255,0.7); font-size: 9px; padding: 24px 6px 0; letter-spacing: 3px; line-height: 12px; }
+  .theme-name { font-size: 12px; font-weight: 600; padding: 0 4px 5px; }
+
+  /* Calendar */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: 16px repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: 8px;
+  }
+  .cal-head, .cal-row-label { font-size: 9px; opacity: 0.55; text-align: center; line-height: 18px; }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 4px;
+    background: rgba(0,0,0,0.05);
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.1s;
+    min-height: 22px;
+  }
+  body[data-theme="space"] .cal-cell { background: rgba(255,255,255,0.06); }
+  .cal-cell:hover { transform: scale(1.15); z-index: 2; }
+  .cal-cell.empty-day { opacity: 0.3; cursor: default; }
+  .cal-cell.empty-day:hover { transform: none; }
+  .cal-cell.selected { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .cal-cell.today::after { content: ''; position: absolute; inset: 2px; border: 1.5px solid var(--accent); border-radius: 3px; pointer-events: none; }
+  .cal-cell.lvl0 { background: rgba(0,0,0,0.06); }
+  body[data-theme="space"] .cal-cell.lvl0 { background: rgba(255,255,255,0.06); }
+  .cal-cell.lvl1 { background: #f87171; }   /* red 1-2 */
+  .cal-cell.lvl2 { background: #fbbf24; }   /* yellow 3-4 */
+  .cal-cell.lvl3 { background: #4ade80; }   /* green 5+ */
+  .cal-legend { display: flex; align-items: center; gap: 6px; font-size: 10px; opacity: 0.75; margin-bottom: 10px; }
+  .legend-sw { width: 10px; height: 10px; border-radius: 3px; }
+  .cal-detail { background: rgba(0,0,0,0.04); border-radius: 10px; padding: 10px 12px; min-height: 60px; }
+  body[data-theme="space"] .cal-detail { background: rgba(255,255,255,0.06); }
+  .cal-detail-date { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  .cal-detail-count { font-size: 11px; opacity: 0.75; margin-bottom: 6px; }
+  .cal-detail-list { margin: 0; padding-left: 16px; font-size: 11px; max-height: 140px; overflow-y: auto; }
+  .cal-detail-list li { margin-bottom: 2px; }
+  .cal-detail-empty { font-size: 11px; opacity: 0.55; font-style: italic; }
+
+  /* Merge cards */
+  .merge-card { background: rgba(0,0,0,0.04); border-radius: 12px; padding: 10px; margin-bottom: 8px; }
+  body[data-theme="space"] .merge-card { background: rgba(255,255,255,0.06); }
+  .merge-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .merge-visual { display: flex; align-items: center; gap: 6px; font-size: 16px; }
+  .merge-visual .arrow { opacity: 0.5; font-size: 12px; }
+  .merge-info { flex: 1; }
+  .merge-info .ttl { font-size: 12px; font-weight: 600; }
+  .merge-info .sub-m { font-size: 10px; opacity: 0.6; }
+  .progress-bar { height: 5px; background: rgba(0,0,0,0.08); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  body[data-theme="space"] .progress-bar { background: rgba(255,255,255,0.1); }
+  .progress-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-3)); width: 0%; transition: width 0.4s ease; }
+  .merge-card button { width: 100%; padding: 7px; font-size: 11px; }
+  .danger-btn { width: 100%; background: rgba(232,90,90,0.1); border: 1px solid rgba(232,90,90,0.3); color: #c04545; }
+  body[data-theme="space"] .danger-btn { background: rgba(232,90,90,0.18); color: #ff9a9a; }
+</style>
+</head>
+<body data-theme="garden">
+
+<div class="scene">
+  <div class="scene-garden">
+    <div class="sun"></div>
+    <div class="cloud c1"></div>
+    <div class="cloud c2"></div>
+    <div class="cloud c3"></div>
+    <div class="cloud c4"></div>
+    <div class="plane">
+      <div class="trail"></div>
+      <svg width="50" height="20" viewBox="0 0 50 20">
+        <path d="M2 11 L36 11 L44 8 L48 11 L44 13 L36 12 Z" fill="#5a5675"/>
+        <path d="M20 11 L26 3 L29 11 Z" fill="#5a5675"/>
+        <path d="M20 11 L26 19 L29 11 Z" fill="#5a5675"/>
+        <circle cx="40" cy="11" r="1.2" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="hills">
+      <div class="hill back"><div class="tree" style="left:30%;bottom:50%;"></div><div class="tree" style="left:55%;bottom:65%;"></div></div>
+      <div class="hill mid"><div class="tree" style="left:20%;"></div><div class="tree" style="left:65%;bottom:70%;"></div></div>
+      <div class="hill front"><div class="tree" style="left:15%;bottom:50%;"></div><div class="tree" style="left:75%;bottom:40%;"></div></div>
+    </div>
+    <div class="grass-layer" id="grassLayer"></div>
+    <div class="ground"></div>
+  </div>
+
+  <div class="scene-space">
+    <div class="stars-layer" id="starsLayer"></div>
+    <div class="nebula"></div>
+    <div class="nebula2"></div>
+    <div class="planet-bg"><div class="ring"></div></div>
+    <div class="moon-bg"></div>
+    <div class="shooting-star"></div>
+    <div class="moonsurface" id="moonSurface"></div>
+  </div>
+
+  <div class="character-wrap" id="characterWrap"></div>
+</div>
+
+<div class="app">
+  <header>
+    <div class="title">
+      <h1 id="appTitle">🌷 Focus Garden</h1>
+      <p id="appSubtitle">Grow your garden by focusing, finishing goals, and showing up daily.</p>
+    </div>
+    <div class="totals">
+      <div class="total-chip"><span class="emoji">🌸</span><span id="totalCount">0</span> <span id="itemLabel">flowers</span></div>
+      <div class="total-chip"><span class="emoji">🔥</span><span id="streakCount">0</span> day streak</div>
+      <button class="total-chip btn" id="settingsToggle"><span class="emoji">⚙</span> Settings</button>
+    </div>
+  </header>
+
+  <div class="cards">
+    <!-- FOCUS / POMODORO -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon icon-focus" id="iconFocus">🌷</div>
+        <div class="card-title">Pomodoro</div>
+        <div class="reward" id="rewardFocus">+ 🌷 per work block</div>
+      </div>
+      <div class="row" style="gap:8px;">
+        <span class="mode-label work" id="modeLabel">Work · 1 of 4</span>
+        <div class="cycle-dots" id="cycleDots"></div>
+      </div>
+      <div class="timer-block">
+        <div class="ring-wrap">
+          <svg viewBox="0 0 100 100">
+            <circle class="ring-bg-c" cx="50" cy="50" r="42"/>
+            <circle id="ringProgress" class="ring-fg-c work" cx="50" cy="50" r="42" stroke-dasharray="263.89" stroke-dashoffset="0"/>
+          </svg>
+        </div>
+        <div style="flex:1; min-width:0;">
+          <div class="big" id="timerDisplay">25:00</div>
+          <div class="sub" id="timerStatus">Ready — hiker awaits.</div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="primary" id="focusStart">Start</button>
+        <button id="focusReset">Reset</button>
+        <button id="focusSkip">Skip</button>
+      </div>
+    </div>
+
+    <!-- GOALS -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon icon-goals" id="iconGoals">🌱</div>
+        <div class="card-title">Goals</div>
+        <div class="reward" id="rewardGoals">+ 🌱 each one</div>
+      </div>
+      <div class="goals-list" id="goalsList"></div>
+      <div class="goal-add">
+        <input type="text" id="goalInput" placeholder="Add a goal…" maxlength="80"/>
+        <button class="primary blue" id="goalAddBtn">Add</button>
+      </div>
+    </div>
+
+    <!-- DAILY LOGIN -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon icon-login" id="iconLogin">🌻</div>
+        <div class="card-title">Daily Check-in</div>
+        <div class="reward" id="rewardLogin">+ 🌻 once a day</div>
+      </div>
+      <div>
+        <div class="big" id="loginDisplay">—</div>
+        <div class="sub" id="loginStatus">Stop by every day to keep the streak going.</div>
+      </div>
+      <div class="row">
+        <button class="primary gold" id="loginBtn">Plant today's sunflower</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="collection">
+    <div class="collection-bar">
+      <div class="collection-label" id="collectionLabel">Your garden</div>
+      <div class="hint-merge" id="hintMerge">Open Settings → Merging to craft rare blooms.</div>
+    </div>
+    <div class="vessel" id="vessel">
+      <div class="empty-msg" id="emptyMsg">Your garden is bare — earn a flower to plant the first one.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SIDE PANEL -->
+<div class="sp-backdrop" id="spBackdrop"></div>
+<aside class="sidepanel" id="sidepanel" aria-hidden="true">
+  <div class="sp-header">
+    <h2>Settings</h2>
+    <button class="sp-close" id="spClose" aria-label="Close">×</button>
+  </div>
+  <div class="sp-body">
+    <div class="sp-section">
+      <h3>Profile</h3>
+      <div class="profile-card" id="profileCard"></div>
+      <input type="file" id="importFile" accept="application/json" style="display:none;"/>
+    </div>
+
+    <div class="sp-section">
+      <h3>Theme</h3>
+      <div class="theme-options">
+        <button class="theme-opt" data-theme="garden">
+          <div class="theme-preview garden-preview"></div>
+          <div class="theme-name">🌷 Garden</div>
+        </button>
+        <button class="theme-opt" data-theme="space">
+          <div class="theme-preview space-preview"></div>
+          <div class="theme-name">🚀 Space</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <h3>Goals Calendar (last 7 weeks)</h3>
+      <div class="cal-legend">
+        <span>Goals/day:</span>
+        <span class="legend-sw" style="background:rgba(0,0,0,0.06);"></span><span>0</span>
+        <span class="legend-sw" style="background:#f87171;"></span><span>1–2</span>
+        <span class="legend-sw" style="background:#fbbf24;"></span><span>3–4</span>
+        <span class="legend-sw" style="background:#4ade80;"></span><span>5+</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-detail" id="calDetail">
+        <div class="cal-detail-empty">Click a day to see goals completed.</div>
+      </div>
+    </div>
+
+    <div class="sp-section">
+      <h3>Merging</h3>
+      <div id="mergeList"></div>
+    </div>
+
+    <div class="sp-section">
+      <h3>Reset</h3>
+      <button class="danger-btn" id="resetAllBtn">Clear current profile</button>
+    </div>
+  </div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ============ POMODORO CONSTANTS ============
+const POMODORO = {
+  work: 25 * 60,
+  shortBreak: 5 * 60,
+  longBreak: 15 * 60,
+  sessionsBeforeLong: 4,
+};
+
+// ============ PROFILE / STORAGE ============
+const PROFILE_KEY = 'focusGarden_currentProfile';
+const stateKey = (email) => `focusGarden_v4_${email}`;
+
+const DEFAULT_STATE = {
+  items: [],
+  lastLoginDate: null,
+  streak: 0,
+  goals: [],          // { id, text, done, createdDate, completedDate }
+  completions: [],    // { date, text, ts }
+  theme: 'garden',
+  pomodoro: { mode: 'work', completedThisCycle: 0 },
+};
+
+function getCurrentProfile() {
+  try { return localStorage.getItem(PROFILE_KEY) || 'guest'; }
+  catch (e) { return 'guest'; }
+}
+function setCurrentProfile(email) {
+  try { localStorage.setItem(PROFILE_KEY, email); } catch (e) {}
+}
+
+const TYPE_TO_CATEGORY = {
+  tulip: 'focus', daisy: 'goals', sunflower: 'login',
+  rose: 'focus-rare', lotus: 'goals-rare', starflower: 'login-rare',
+};
+
+function loadStateFor(email) {
+  try {
+    // Try v4 first, then fall back to v3, v2 for migration
+    const raw = localStorage.getItem(stateKey(email))
+             || (email === 'guest' ? (localStorage.getItem('focusGarden_v3') || localStorage.getItem('focusGarden_v2')) : null);
+    if (!raw) return structuredClone(DEFAULT_STATE);
+    const parsed = JSON.parse(raw);
+    const merged = Object.assign(structuredClone(DEFAULT_STATE), parsed);
+    if (parsed.flowers && !parsed.items) {
+      merged.items = parsed.flowers.map(f => ({ category: TYPE_TO_CATEGORY[f.type] || 'focus', x: f.x, ts: f.ts }));
+    }
+    if (!merged.pomodoro) merged.pomodoro = { mode: 'work', completedThisCycle: 0 };
+    if (!merged.completions) merged.completions = [];
+    return merged;
+  } catch (e) {
+    console.warn('load failed', e);
+    return structuredClone(DEFAULT_STATE);
+  }
+}
+
+let currentProfile = getCurrentProfile();
+let state = loadStateFor(currentProfile);
+
+function saveState() {
+  try { localStorage.setItem(stateKey(currentProfile), JSON.stringify(state)); } catch (e) {}
+}
+
+// ============ TOAST ============
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2400);
+}
+
+// ============ ITEM SVGs ============
+const SVGS = {
+  // GARDEN
+  tulip: `<svg width="42" height="78" viewBox="0 0 42 78"><path d="M21 78 V36" stroke="#4a8765" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="13" cy="54" rx="7" ry="3" fill="#5fa377" transform="rotate(-25 13 54)"/><ellipse cx="29" cy="60" rx="7" ry="3" fill="#5fa377" transform="rotate(25 29 60)"/><path d="M21 8 C13 8, 9 18, 11 32 L21 36 L31 32 C33 18, 29 8, 21 8 Z" fill="#e85a8b"/><path d="M21 12 C17 14, 15 24, 17 32 L21 34 Z" fill="#f47ca8"/></svg>`,
+  plant: `<svg width="48" height="78" viewBox="0 0 48 78"><defs><linearGradient id="potG" x1="0" x2="1"><stop offset="0%" stop-color="#c8804a"/><stop offset="50%" stop-color="#a05828"/><stop offset="100%" stop-color="#7a3e1c"/></linearGradient></defs><path d="M14 56 L16 76 L32 76 L34 56 Z" fill="url(#potG)"/><ellipse cx="24" cy="56" rx="10" ry="2.5" fill="#7a4a26"/><ellipse cx="24" cy="54.5" rx="8.5" ry="1.8" fill="#2a1808"/><path d="M24 54 Q 23 38 24 24" stroke="#4a8765" stroke-width="2.5" fill="none" stroke-linecap="round"/><ellipse cx="14" cy="44" rx="9" ry="4" fill="#5fa377" transform="rotate(-25 14 44)"/><ellipse cx="34" cy="38" rx="9" ry="4" fill="#5fa377" transform="rotate(25 34 38)"/><ellipse cx="18" cy="30" rx="7" ry="3" fill="#6db488" transform="rotate(-15 18 30)"/><ellipse cx="30" cy="24" rx="6" ry="3" fill="#6db488" transform="rotate(20 30 24)"/><ellipse cx="24" cy="14" rx="4.5" ry="6" fill="#79c08c"/><ellipse cx="20" cy="60" rx="1.5" ry="6" fill="rgba(255,255,255,0.2)"/></svg>`,
+  sunflower: `<svg width="56" height="88" viewBox="0 0 56 88"><path d="M28 88 V40" stroke="#4a8765" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="18" cy="58" rx="8" ry="4" fill="#5fa377" transform="rotate(-25 18 58)"/><ellipse cx="38" cy="68" rx="8" ry="4" fill="#5fa377" transform="rotate(25 38 68)"/><g transform="translate(28 28)">${Array.from({length:12}).map((_,i)=>{const a=i*30;return `<ellipse cx="0" cy="-14" rx="4.5" ry="10" fill="#f1a93b" stroke="#d28911" stroke-width="0.6" transform="rotate(${a})"/>`}).join('')}<circle r="9" fill="#5a3a1a"/></g></svg>`,
+  rose: `<svg width="58" height="92" viewBox="0 0 58 92"><path d="M29 92 V42" stroke="#3d6f4d" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="17" cy="60" rx="9" ry="4" fill="#4d8a62" transform="rotate(-25 17 60)"/><ellipse cx="41" cy="70" rx="9" ry="4" fill="#4d8a62" transform="rotate(25 41 70)"/><g transform="translate(29 26)"><circle r="16" fill="#b8284a"/><path d="M-10 -2 Q -12 -12 -2 -14 Q 8 -16 12 -6 Q 16 6 4 12 Q -8 14 -12 4 Z" fill="#d6385e"/><path d="M-6 -4 Q -8 -10 0 -10 Q 8 -10 10 -2 Q 10 6 2 8 Q -8 8 -8 0 Z" fill="#e8546f"/><path d="M-3 -3 Q -4 -6 0 -6 Q 5 -6 5 -1 Q 5 3 0 4 Q -4 3 -3 0 Z" fill="#f47b91"/><circle r="2.5" cx="0" cy="-1" fill="#fff1c2"/></g></svg>`,
+  bonsai: `<svg width="62" height="90" viewBox="0 0 62 90"><path d="M14 70 L18 86 L44 86 L48 70 Z" fill="#7a4a26"/><ellipse cx="31" cy="70" rx="17" ry="3" fill="#5a3416"/><ellipse cx="31" cy="68.5" rx="14" ry="2" fill="#1a0e04"/><path d="M31 68 Q 26 60 32 52 Q 38 46 30 38 Q 24 32 32 26" stroke="#7a4a26" stroke-width="5" fill="none" stroke-linecap="round"/><ellipse cx="20" cy="44" rx="11" ry="9" fill="#5fa377"/><ellipse cx="36" cy="36" rx="13" ry="10" fill="#5fa377"/><ellipse cx="46" cy="44" rx="9" ry="7" fill="#5fa377"/><ellipse cx="28" cy="26" rx="10" ry="8" fill="#6db488"/><ellipse cx="40" cy="30" rx="9" ry="7" fill="#6db488"/><ellipse cx="24" cy="40" rx="3" ry="2" fill="#86c896" opacity="0.7"/><ellipse cx="36" cy="32" rx="3" ry="2" fill="#86c896" opacity="0.7"/><circle cx="22" cy="48" r="1.4" fill="#f47ca8"/><circle cx="32" cy="38" r="1.4" fill="#f47ca8"/><circle cx="42" cy="40" r="1.2" fill="#f47ca8"/></svg>`,
+  starflower: `<svg width="62" height="96" viewBox="0 0 62 96"><defs><radialGradient id="sfRad"><stop offset="0%" stop-color="#fff6c2"/><stop offset="60%" stop-color="#ffd163"/><stop offset="100%" stop-color="#e8830a"/></radialGradient></defs><path d="M31 96 V44" stroke="#3d6f4d" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="19" cy="62" rx="9" ry="4" fill="#4d8a62" transform="rotate(-25 19 62)"/><ellipse cx="43" cy="72" rx="9" ry="4" fill="#4d8a62" transform="rotate(25 43 72)"/><g transform="translate(31 28)">${Array.from({length:16}).map((_,i)=>{const a=i*22.5;const len=i%2===0?16:10;return `<ellipse cx="0" cy="${-len}" rx="3.5" ry="${len/1.4}" fill="url(#sfRad)" stroke="#c87808" stroke-width="0.5" transform="rotate(${a})"/>`}).join('')}<circle r="9" fill="#7a4a14"/><circle r="9" fill="url(#sfRad)" opacity="0.5"/></g></svg>`,
+
+  // SPACE
+  star: `<svg width="44" height="44" viewBox="0 0 44 44"><defs><radialGradient id="starG"><stop offset="0%" stop-color="#fff8c2"/><stop offset="50%" stop-color="#ffe27a"/><stop offset="100%" stop-color="#f0a830"/></radialGradient></defs><polygon points="22,3 27,17 42,18 30,27 34,42 22,33 10,42 14,27 2,18 17,17" fill="url(#starG)" stroke="#e09020" stroke-width="0.8"/><polygon points="22,9 25,17 33,18 27,23 29,32 22,27 15,32 17,23 11,18 19,17" fill="#fff6b8" opacity="0.6"/></svg>`,
+  crescent: `<svg width="42" height="48" viewBox="0 0 42 48"><defs><radialGradient id="cmoon" cx="30%" cy="30%"><stop offset="0%" stop-color="#fff8e6"/><stop offset="100%" stop-color="#d8c89c"/></radialGradient></defs><circle cx="21" cy="24" r="18" fill="rgba(255,240,180,0.22)"/><circle cx="21" cy="24" r="16" fill="url(#cmoon)" stroke="#a89a6c" stroke-width="0.5"/><circle cx="27" cy="22" r="14" fill="#1a0e3a"/><ellipse cx="12" cy="20" rx="2" ry="3" fill="#fff" opacity="0.6"/></svg>`,
+  comet: `<svg width="60" height="36" viewBox="0 0 60 36"><defs><linearGradient id="cometTail" x1="0" x2="1"><stop offset="0%" stop-color="rgba(125,211,252,0)"/><stop offset="60%" stop-color="rgba(125,211,252,0.7)"/><stop offset="100%" stop-color="#fff8c2"/></linearGradient><radialGradient id="cometHead"><stop offset="0%" stop-color="#fff"/><stop offset="60%" stop-color="#fff8c2"/><stop offset="100%" stop-color="#ffb340"/></radialGradient></defs><path d="M2 22 L46 18 L48 14 L46 10 L2 14 Z" fill="url(#cometTail)" opacity="0.85"/><circle cx="48" cy="16" r="8" fill="url(#cometHead)" stroke="#e09020" stroke-width="0.6"/><circle cx="46" cy="14" r="3" fill="#fff" opacity="0.7"/></svg>`,
+  supernova: `<svg width="64" height="64" viewBox="0 0 64 64"><defs><radialGradient id="snRad"><stop offset="0%" stop-color="#fff" stop-opacity="1"/><stop offset="30%" stop-color="#fff4b8" stop-opacity="0.9"/><stop offset="70%" stop-color="#c084fc" stop-opacity="0.45"/><stop offset="100%" stop-color="#7a3aa8" stop-opacity="0"/></radialGradient></defs><circle cx="32" cy="32" r="30" fill="url(#snRad)"/><g transform="translate(32 32)">${Array.from({length:12}).map((_,i)=>{const a=i*30;return `<polygon points="0,-22 2,-6 0,0 -2,-6" fill="#fff8c2" opacity="0.85" transform="rotate(${a})"/>`}).join('')}<circle r="10" fill="#fff"/><circle r="6" fill="#fff8c2"/></g></svg>`,
+  fullmoon: `<svg width="56" height="56" viewBox="0 0 56 56"><defs><radialGradient id="fmoon" cx="35%" cy="35%"><stop offset="0%" stop-color="#fff"/><stop offset="60%" stop-color="#fff4d8"/><stop offset="100%" stop-color="#c8b888"/></radialGradient></defs><circle cx="28" cy="28" r="26" fill="rgba(255,240,180,0.25)"/><circle cx="28" cy="28" r="22" fill="url(#fmoon)" stroke="#8a7a4a" stroke-width="0.6"/><circle cx="20" cy="22" r="4" fill="#a89a6a" opacity="0.4"/><circle cx="35" cy="30" r="3.2" fill="#a89a6a" opacity="0.4"/><circle cx="28" cy="40" r="2.6" fill="#a89a6a" opacity="0.4"/><circle cx="40" cy="20" r="2" fill="#a89a6a" opacity="0.35"/><circle cx="22" cy="32" r="1.8" fill="#a89a6a" opacity="0.3"/></svg>`,
+  galaxy: `<svg width="64" height="64" viewBox="0 0 64 64"><defs><radialGradient id="gxCore"><stop offset="0%" stop-color="#fff"/><stop offset="35%" stop-color="#fde68a"/><stop offset="100%" stop-color="rgba(192,132,252,0)"/></radialGradient></defs><g transform="translate(32 32) rotate(-20)"><ellipse rx="30" ry="10" fill="rgba(192,132,252,0.18)"/><ellipse rx="24" ry="7" fill="rgba(125,211,252,0.25)" transform="rotate(45)"/><ellipse rx="20" ry="5" fill="rgba(244,114,182,0.3)" transform="rotate(-30)"/><ellipse rx="14" ry="3.5" fill="rgba(255,255,255,0.5)"/><circle r="6" fill="url(#gxCore)"/></g><circle cx="50" cy="14" r="0.9" fill="#fff"/><circle cx="12" cy="48" r="0.8" fill="#fff"/><circle cx="56" cy="50" r="0.7" fill="#fff"/></svg>`,
+};
+
+// ============ THEMES ============
+const THEMES = {
+  garden: {
+    name: 'Garden',
+    title: '🌷 Focus Garden',
+    subtitle: 'Grow your garden by focusing, finishing goals, and showing up daily.',
+    itemPlural: 'plants',
+    collectionLabel: 'Your garden',
+    visuals: {
+      'focus':      { svg: 'tulip',      emoji: '🌷', label: 'Tulip' },
+      'goals':      { svg: 'plant',      emoji: '🌱', label: 'Sapling' },
+      'login':      { svg: 'sunflower',  emoji: '🌻', label: 'Sunflower' },
+      'focus-rare': { svg: 'rose',       emoji: '🌹', label: 'Rose' },
+      'goals-rare': { svg: 'bonsai',     emoji: '🪴', label: 'Bonsai' },
+      'login-rare': { svg: 'starflower', emoji: '✨', label: 'Star flower' },
+    },
+    cardIcons:  { focus: '🌷', goals: '🌱', login: '🌻' },
+    cardRewards:{ focus: '+ 🌷 per work block', goals: '+ 🌱 each one', login: '+ 🌻 once a day' },
+    loginBtn: "Plant today's sunflower",
+    loginPlantedToast: '🌻 Sunflower planted!',
+    focusToast: '🌷 Tulip planted!',
+    goalsToast: '🌱 Sapling planted!',
+    characterLabel: 'hiker',
+    timerMsgs: {
+      work:       { ready: 'Ready — hiker awaits the climb.', running: 'Focusing — hiker climbing…', paused: 'Paused — hiker resting.' },
+      shortBreak: { ready: 'Short break — hiker takes a breather.', running: 'Hiker resting at the lookout.', paused: 'Break paused.' },
+      longBreak:  { ready: 'Long break — hiker sets up camp.', running: 'Hiker camping. Relax!', paused: 'Camp paused.' },
+    },
+    completeMsg: { work: '🌷 Summit reached! Take a break.', break: 'Break over — ready for next climb.' },
+    hintMerge: 'Open Settings → Merging to craft rare blooms.',
+    emptyMsg: 'Your garden is bare — earn a flower to plant the first one.',
+    charPath: { startLeft: 14, endLeft: 64, startBottom: 18, endBottom: 36 },
+  },
+  space: {
+    name: 'Space',
+    title: '🚀 Focus Cosmos',
+    subtitle: 'Build your constellation by focusing, finishing goals, and showing up daily.',
+    itemPlural: 'stars',
+    collectionLabel: 'Your cosmos',
+    visuals: {
+      'focus':      { svg: 'star',      emoji: '⭐', label: 'Star' },
+      'goals':      { svg: 'crescent',  emoji: '🌙', label: 'Crescent moon' },
+      'login':      { svg: 'comet',     emoji: '☄️', label: 'Comet' },
+      'focus-rare': { svg: 'supernova', emoji: '🌟', label: 'Supernova' },
+      'goals-rare': { svg: 'fullmoon',  emoji: '🌕', label: 'Full moon' },
+      'login-rare': { svg: 'galaxy',    emoji: '🌌', label: 'Galaxy' },
+    },
+    cardIcons:  { focus: '⭐', goals: '🌙', login: '☄️' },
+    cardRewards:{ focus: '+ ⭐ per work block', goals: '+ 🌙 each one', login: '+ ☄️ once a day' },
+    loginBtn: "Launch today's comet",
+    loginPlantedToast: '☄️ Comet launched!',
+    focusToast: '⭐ Star captured!',
+    goalsToast: '🌙 Moon collected!',
+    characterLabel: 'astronaut',
+    timerMsgs: {
+      work:       { ready: 'Ready — astronaut on standby.', running: 'Focusing — astronaut traversing…', paused: 'Paused — astronaut floating.' },
+      shortBreak: { ready: 'Short break — astronaut tethers up.', running: 'Astronaut adrift in repose.', paused: 'Break paused.' },
+      longBreak:  { ready: 'Long break — astronaut returns to base.', running: 'Astronaut at orbital station.', paused: 'Break paused.' },
+    },
+    completeMsg: { work: '⭐ Destination reached! Take a break.', break: 'Break over — ready for next mission.' },
+    hintMerge: 'Open Settings → Merging to fuse rare cosmic bodies.',
+    emptyMsg: 'Your cosmos is empty — capture a star to begin.',
+    charPath: { startLeft: 14, endLeft: 72, startBottom: 16, endBottom: 30 },
+  },
+};
+
+const CHARACTER_SVG = {
+  garden: `<svg class="character" viewBox="-2 -18 50 70">
+    <rect x="6" y="14" width="9" height="14" rx="2" fill="#a04848"/>
+    <rect x="8" y="17" width="5" height="2" fill="#7a2e2e"/>
+    <ellipse cx="19" cy="22" rx="6" ry="9" fill="#6c8fd1"/>
+    <circle cx="19" cy="10" r="5" fill="#f0c9a8"/>
+    <ellipse cx="19" cy="8" rx="8" ry="1.6" fill="#3a4a5c"/>
+    <path d="M13 8 L25 8 L23 4 L15 4 Z" fill="#3a4a5c"/>
+    <rect class="leg leg-l" x="16" y="29" width="3" height="14" fill="#2a3a4c" rx="1"/>
+    <rect class="leg leg-r" x="20" y="29" width="3" height="14" fill="#2a3a4c" rx="1"/>
+    <rect class="arm" x="24" y="17" width="2.5" height="11" fill="#6c8fd1" rx="1"/>
+    <line x1="27" y1="14" x2="33" y2="40" stroke="#5a3a1a" stroke-width="1.6" stroke-linecap="round"/>
+    <g class="flag">
+      <line x1="30" y1="4" x2="30" y2="-12" stroke="#5a3a1a" stroke-width="1.5"/>
+      <path d="M30 -12 L42 -9 L30 -5 Z" fill="#e85a8b"/>
+    </g>
+  </svg>`,
+  space: `<svg class="character" viewBox="-2 -18 50 70">
+    <rect x="4" y="14" width="10" height="16" rx="2" fill="#d4d4dc"/>
+    <rect x="6" y="17" width="6" height="2" fill="#8d8d96"/>
+    <rect x="6" y="21" width="6" height="2" fill="#5a9ed1"/>
+    <rect x="6" y="25" width="6" height="2" fill="#ee6a6a"/>
+    <ellipse cx="19" cy="22" rx="7" ry="10" fill="#f0f0f0"/>
+    <rect x="12" y="25" width="14" height="2" fill="#b8b8c0"/>
+    <circle cx="19" cy="10" r="6" fill="#f0f0f0"/>
+    <circle cx="19" cy="10" r="4.5" fill="#1a3a4a"/>
+    <ellipse cx="17" cy="8" rx="1.8" ry="1.2" fill="#7dd3fc" opacity="0.85"/>
+    <ellipse cx="20.5" cy="11" rx="0.8" ry="0.6" fill="#fff" opacity="0.7"/>
+    <rect x="13" y="14" width="12" height="2" fill="#c8c8d0"/>
+    <rect class="leg leg-l" x="15" y="30" width="3.5" height="14" fill="#f0f0f0" rx="1"/>
+    <rect class="leg leg-r" x="19.5" y="30" width="3.5" height="14" fill="#f0f0f0" rx="1"/>
+    <ellipse cx="16.7" cy="44" rx="2.5" ry="1.4" fill="#6a6a78"/>
+    <ellipse cx="21.2" cy="44" rx="2.5" ry="1.4" fill="#6a6a78"/>
+    <rect class="arm" x="24" y="18" width="3" height="12" fill="#f0f0f0" rx="1"/>
+    <circle cx="25.5" cy="30.5" r="2" fill="#d4d4dc"/>
+    <g class="flag">
+      <line x1="32" y1="6" x2="32" y2="-12" stroke="#c8c8d0" stroke-width="1.5"/>
+      <path d="M32 -12 L44 -9 L32 -5 Z" fill="#c084fc"/>
+    </g>
+  </svg>`,
+};
+
+// ============ MERGE RULES ============
+const MERGE_RULES = [
+  { from: 'focus', to: 'focus-rare', cost: 5 },
+  { from: 'goals', to: 'goals-rare', cost: 5 },
+  { from: 'login', to: 'login-rare', cost: 5 },
+];
+
+// ============ THEME APPLICATION ============
+let currentTheme = state.theme || 'garden';
+const T = () => THEMES[currentTheme];
+const visualFor = (cat) => T().visuals[cat];
+
+function applyTheme(themeName, { showToast = false } = {}) {
+  if (!THEMES[themeName]) return;
+  currentTheme = themeName;
+  state.theme = themeName;
+  saveState();
+  document.body.setAttribute('data-theme', themeName);
+  const t = T();
+
+  document.getElementById('appTitle').textContent = t.title;
+  document.getElementById('appSubtitle').textContent = t.subtitle;
+  document.getElementById('itemLabel').textContent = t.itemPlural;
+  document.getElementById('collectionLabel').textContent = t.collectionLabel;
+  document.getElementById('hintMerge').textContent = t.hintMerge;
+  document.getElementById('emptyMsg').textContent = t.emptyMsg;
+  document.getElementById('iconFocus').textContent = t.cardIcons.focus;
+  document.getElementById('iconGoals').textContent = t.cardIcons.goals;
+  document.getElementById('iconLogin').textContent = t.cardIcons.login;
+  document.getElementById('rewardFocus').textContent = t.cardRewards.focus;
+  document.getElementById('rewardGoals').textContent = t.cardRewards.goals;
+  document.getElementById('rewardLogin').textContent = t.cardRewards.login;
+
+  document.getElementById('characterWrap').innerHTML = CHARACTER_SVG[themeName];
+
+  document.querySelectorAll('.theme-opt').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === themeName);
+  });
+
+  if (!focusRunning) {
+    timerStatus.textContent = t.timerMsgs[state.pomodoro.mode].ready;
+  }
+  refreshLoginUI();
+  renderCollection();
+  renderMergeList();
+  renderModeUI();
+
+  if (showToast) toast(`Switched to ${t.name} theme`);
+}
+
+// ============ COLLECTION ============
+const vessel = document.getElementById('vessel');
+const emptyMsg = document.getElementById('emptyMsg');
+const totalCountEl = document.getElementById('totalCount');
+const streakCountEl = document.getElementById('streakCount');
+const RARE_CATS = new Set(['focus-rare', 'goals-rare', 'login-rare']);
+
+function plantItem(category) {
+  let x, y;
+  if (currentTheme === 'garden') {
+    x = 4 + Math.random() * 92;
+    y = 0;
+  } else {
+    x = 6 + Math.random() * 88;
+    y = 10 + Math.random() * 80;
+  }
+  state.items.push({ category, x, y, ts: Date.now() });
+  saveState();
+  renderCollection();
+  updateTotals();
+  renderMergeList();
+}
+
+function renderCollection() {
+  [...vessel.querySelectorAll('.item')].forEach(n => n.remove());
+  if (state.items.length === 0) {
+    emptyMsg.classList.remove('hidden');
+    return;
+  }
+  emptyMsg.classList.add('hidden');
+  const sorted = [...state.items].sort((a,b) => a.x - b.x);
+  sorted.forEach((f, i) => {
+    const wrap = document.createElement('div');
+    wrap.className = 'item' + (RARE_CATS.has(f.category) ? ' rare' : '');
+    const v = visualFor(f.category);
+    const html = SVGS[v.svg];
+    wrap.innerHTML = html;
+    const widthMatch = html.match(/width="(\d+)"/);
+    const wPx = widthMatch ? parseInt(widthMatch[1], 10) : 50;
+    wrap.style.left = `calc(${f.x}% - ${wPx/2}px)`;
+    if (currentTheme === 'garden') {
+      wrap.style.bottom = '4px';
+    } else {
+      const yy = f.y !== undefined ? f.y : (10 + (i * 17) % 80);
+      wrap.style.bottom = `calc(${yy}% - 22px)`;
+    }
+    wrap.style.animationDelay = `0s, ${(i % 6) * 0.25}s`;
+    vessel.appendChild(wrap);
+  });
+}
+
+function updateTotals() {
+  totalCountEl.textContent = state.items.length;
+  streakCountEl.textContent = state.streak;
+}
+
+// ============ MERGE / GREENHOUSE ============
+const mergeListEl = document.getElementById('mergeList');
+function categoryCount(cat) { return state.items.filter(it => it.category === cat).length; }
+function renderMergeList() {
+  mergeListEl.innerHTML = '';
+  MERGE_RULES.forEach(rule => {
+    const fromV = visualFor(rule.from);
+    const toV   = visualFor(rule.to);
+    const have = categoryCount(rule.from);
+    const pct = Math.min(100, (have / rule.cost) * 100);
+    const ready = have >= rule.cost;
+    const card = document.createElement('div');
+    card.className = 'merge-card';
+    card.innerHTML = `
+      <div class="merge-head">
+        <div class="merge-visual">
+          <span>${fromV.emoji}</span>
+          <span class="arrow">×${rule.cost} →</span>
+          <span style="font-size:20px;">${toV.emoji}</span>
+        </div>
+        <div class="merge-info">
+          <div class="ttl">${fromV.label} → ${toV.label}</div>
+          <div class="sub-m">${have} / ${rule.cost}</div>
+        </div>
+      </div>
+      <div class="progress-bar"><span style="width:${pct}%"></span></div>
+      <button class="primary" data-merge="${rule.from}" ${ready ? '' : 'disabled'}>
+        ${ready ? `Merge ${rule.cost} ${fromV.emoji} → ${toV.emoji}` : `Need ${rule.cost - have} more`}
+      </button>
+    `;
+    mergeListEl.appendChild(card);
+  });
+  mergeListEl.querySelectorAll('button[data-merge]').forEach(btn => {
+    btn.addEventListener('click', () => doMerge(btn.dataset.merge));
+  });
+}
+function doMerge(fromCat) {
+  const rule = MERGE_RULES.find(r => r.from === fromCat);
+  if (!rule) return;
+  let removed = 0;
+  const indices = [];
+  for (let i = 0; i < state.items.length && removed < rule.cost; i++) {
+    if (state.items[i].category === rule.from) { indices.push(i); removed++; }
+  }
+  if (removed < rule.cost) return;
+  indices.reverse().forEach(i => state.items.splice(i, 1));
+  plantItem(rule.to);
+  const v = visualFor(rule.to);
+  toast(`✨ Crafted ${v.emoji} ${v.label}!`);
+}
+
+// ============ POMODORO TIMER ============
+const CIRC = 2 * Math.PI * 42;
+const ringEl = document.getElementById('ringProgress');
+ringEl.setAttribute('stroke-dasharray', CIRC.toString());
+const timerDisplay = document.getElementById('timerDisplay');
+const timerStatus  = document.getElementById('timerStatus');
+const focusStart   = document.getElementById('focusStart');
+const focusReset   = document.getElementById('focusReset');
+const focusSkip    = document.getElementById('focusSkip');
+const characterWrap= document.getElementById('characterWrap');
+const modeLabel    = document.getElementById('modeLabel');
+const cycleDots    = document.getElementById('cycleDots');
+
+function modeDuration() { return POMODORO[state.pomodoro.mode]; }
+let remaining = modeDuration();
+let focusRunning = false;
+let focusTimerId = null;
+
+function pad(n){return n.toString().padStart(2,'0');}
+
+function renderModeUI() {
+  const m = state.pomodoro.mode;
+  const done = state.pomodoro.completedThisCycle;
+  const labels = { work: 'Work', shortBreak: 'Short break', longBreak: 'Long break' };
+  modeLabel.textContent = m === 'work'
+    ? `${labels[m]} · ${done + 1} of ${POMODORO.sessionsBeforeLong}`
+    : labels[m];
+  modeLabel.className = 'mode-label ' + m;
+  ringEl.classList.remove('work', 'shortBreak', 'longBreak');
+  ringEl.classList.add(m);
+
+  cycleDots.innerHTML = '';
+  for (let i = 0; i < POMODORO.sessionsBeforeLong; i++) {
+    const d = document.createElement('div');
+    d.className = 'cycle-dot' + (i < done ? ' done' : '');
+    cycleDots.appendChild(d);
+  }
+}
+
+function renderTimer() {
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  timerDisplay.textContent = `${pad(m)}:${pad(s)}`;
+  const progress = remaining / modeDuration();
+  ringEl.setAttribute('stroke-dashoffset', (CIRC * (1 - progress)).toString());
+  updateCharacter();
+}
+
+function updateCharacter() {
+  const completion = 1 - (remaining / modeDuration());
+  const p = T().charPath;
+  const isWork = state.pomodoro.mode === 'work';
+  if (!isWork) {
+    // During breaks: character rests off to the side
+    characterWrap.style.left = (p.endLeft + 8) + 'vw';
+    characterWrap.style.bottom = (p.endBottom + 2) + 'vh';
+    if (focusRunning) {
+      characterWrap.classList.add('visible', 'resting');
+      characterWrap.classList.remove('walking', 'summit');
+    } else {
+      characterWrap.classList.remove('visible', 'walking', 'resting', 'summit');
+    }
+    return;
+  }
+  const left = p.startLeft + completion * (p.endLeft - p.startLeft);
+  const bottom = p.startBottom + completion * (p.endBottom - p.startBottom);
+  characterWrap.style.left = left + 'vw';
+  characterWrap.style.bottom = bottom + 'vh';
+  if (focusRunning) characterWrap.classList.add('visible');
+  characterWrap.classList.remove('resting');
+  characterWrap.classList.toggle('summit', completion >= 0.999);
+}
+
+function advanceMode() {
+  const p = state.pomodoro;
+  if (p.mode === 'work') {
+    p.completedThisCycle += 1;
+    if (p.completedThisCycle >= POMODORO.sessionsBeforeLong) {
+      p.mode = 'longBreak';
+      p.completedThisCycle = 0;
+    } else {
+      p.mode = 'shortBreak';
+    }
+  } else {
+    p.mode = 'work';
+  }
+  saveState();
+  remaining = modeDuration();
+}
+
+function focusTick() {
+  if (remaining > 0) {
+    remaining -= 1;
+    renderTimer();
+  } else {
+    const wasWork = state.pomodoro.mode === 'work';
+    focusRunning = false;
+    clearInterval(focusTimerId);
+    focusTimerId = null;
+    focusStart.textContent = 'Start';
+    if (wasWork) {
+      plantItem('focus');
+      toast(T().focusToast);
+      try { beep(); } catch(e){}
+      timerStatus.textContent = T().completeMsg.work;
+    } else {
+      try { beep(); } catch(e){}
+      timerStatus.textContent = T().completeMsg.break;
+    }
+    advanceMode();
+    renderModeUI();
+    setTimeout(() => {
+      characterWrap.classList.remove('walking', 'summit', 'resting');
+      if (state.pomodoro.mode === 'work') characterWrap.classList.remove('visible');
+      renderTimer();
+      timerStatus.textContent = T().timerMsgs[state.pomodoro.mode].ready;
+    }, 2200);
+  }
+}
+function focusStartFn() {
+  if (focusRunning) {
+    focusRunning = false;
+    clearInterval(focusTimerId);
+    focusStart.textContent = 'Resume';
+    timerStatus.textContent = T().timerMsgs[state.pomodoro.mode].paused;
+    characterWrap.classList.remove('walking');
+    return;
+  }
+  focusRunning = true;
+  focusStart.textContent = 'Pause';
+  timerStatus.textContent = T().timerMsgs[state.pomodoro.mode].running;
+  if (state.pomodoro.mode === 'work') {
+    characterWrap.classList.add('visible', 'walking');
+  } else {
+    characterWrap.classList.add('visible', 'resting');
+  }
+  updateCharacter();
+  focusTimerId = setInterval(focusTick, 1000);
+}
+function focusResetFn() {
+  focusRunning = false;
+  clearInterval(focusTimerId);
+  remaining = modeDuration();
+  focusStart.textContent = 'Start';
+  timerStatus.textContent = T().timerMsgs[state.pomodoro.mode].ready;
+  characterWrap.classList.remove('visible', 'walking', 'summit', 'resting');
+  renderTimer();
+}
+function focusSkipFn() {
+  const wasWork = state.pomodoro.mode === 'work';
+  focusRunning = false;
+  clearInterval(focusTimerId);
+  focusStart.textContent = 'Start';
+  if (wasWork) {
+    plantItem('focus');
+    toast(T().focusToast);
+  }
+  advanceMode();
+  renderModeUI();
+  renderTimer();
+  timerStatus.textContent = T().timerMsgs[state.pomodoro.mode].ready;
+  characterWrap.classList.remove('visible', 'walking', 'summit', 'resting');
+}
+focusStart.addEventListener('click', focusStartFn);
+focusReset.addEventListener('click', focusResetFn);
+focusSkip.addEventListener('click', focusSkipFn);
+
+// ============ GOALS ============
+const goalsListEl = document.getElementById('goalsList');
+const goalInput   = document.getElementById('goalInput');
+const goalAddBtn  = document.getElementById('goalAddBtn');
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function renderGoals() {
+  if (state.goals.length === 0) {
+    goalsListEl.innerHTML = '<div class="goal-empty">No goals yet — add one to begin.</div>';
+    return;
+  }
+  goalsListEl.innerHTML = '';
+  state.goals.forEach(g => {
+    const item = document.createElement('div');
+    item.className = 'goal-item' + (g.done ? ' done' : '');
+    item.innerHTML = `
+      <div class="goal-check ${g.done ? 'checked' : ''}" data-id="${g.id}"></div>
+      <div class="goal-text">${escapeHtml(g.text)}</div>
+      <div class="goal-del" data-del="${g.id}" title="Delete">×</div>
+    `;
+    goalsListEl.appendChild(item);
+  });
+  goalsListEl.querySelectorAll('.goal-check').forEach(el => {
+    el.addEventListener('click', () => toggleGoal(el.dataset.id));
+  });
+  goalsListEl.querySelectorAll('.goal-del').forEach(el => {
+    el.addEventListener('click', () => deleteGoal(el.dataset.del));
+  });
+}
+function addGoal() {
+  const text = goalInput.value.trim();
+  if (!text) return;
+  state.goals.push({
+    id: 'g_' + Date.now() + '_' + Math.floor(Math.random()*999),
+    text,
+    done: false,
+    createdDate: todayStr(),
+    completedDate: null,
+  });
+  goalInput.value = '';
+  saveState();
+  renderGoals();
+}
+function toggleGoal(id) {
+  const g = state.goals.find(x => x.id === id);
+  if (!g) return;
+  if (g.done) {
+    g.done = false;
+    // keep completion in log so the calendar history is preserved
+  } else {
+    g.done = true;
+    g.completedDate = todayStr();
+    state.completions.push({ date: todayStr(), text: g.text, ts: Date.now() });
+    plantItem('goals');
+    toast(T().goalsToast);
+    try { beep(); } catch(e){}
+  }
+  saveState();
+  renderGoals();
+  renderCalendar();
+}
+function deleteGoal(id) {
+  state.goals = state.goals.filter(g => g.id !== id);
+  saveState();
+  renderGoals();
+}
+goalAddBtn.addEventListener('click', addGoal);
+goalInput.addEventListener('keydown', e => { if (e.key === 'Enter') addGoal(); });
+
+// ============ DAILY LOGIN ============
+const loginDisplay = document.getElementById('loginDisplay');
+const loginStatus  = document.getElementById('loginStatus');
+const loginBtn     = document.getElementById('loginBtn');
+
+function refreshLoginUI() {
+  const today = todayStr();
+  const t = T();
+  if (state.lastLoginDate === today) {
+    loginDisplay.textContent = '✓ Today';
+    loginStatus.textContent = `Streak: ${state.streak} day${state.streak === 1 ? '' : 's'}. Come back tomorrow.`;
+    loginBtn.disabled = true;
+    loginBtn.textContent = `Already ${currentTheme === 'space' ? 'launched' : 'planted'} today`;
+  } else {
+    loginDisplay.textContent = currentTheme === 'space' ? '🛰' : '🌱';
+    loginStatus.textContent = currentTheme === 'space'
+      ? "Launch today's comet to extend the streak."
+      : "Plant today's sunflower to keep the streak alive.";
+    loginBtn.disabled = false;
+    loginBtn.textContent = t.loginBtn;
+  }
+}
+function plantDailyLogin() {
+  const today = todayStr();
+  if (state.lastLoginDate === today) return;
+  if (state.lastLoginDate) {
+    const last = new Date(state.lastLoginDate);
+    const now  = new Date(today);
+    const diffDays = Math.round((now - last) / 86400000);
+    state.streak = diffDays === 1 ? state.streak + 1 : 1;
+  } else {
+    state.streak = 1;
+  }
+  state.lastLoginDate = today;
+  plantItem('login');
+  toast(T().loginPlantedToast);
+  saveState();
+  refreshLoginUI();
+  updateTotals();
+}
+loginBtn.addEventListener('click', plantDailyLogin);
+
+// ============ CALENDAR ============
+const calGridEl = document.getElementById('calGrid');
+const calDetailEl = document.getElementById('calDetail');
+let selectedCalDate = null;
+
+const WEEKS_SHOWN = 7;
+
+function startOfWeek(d) {
+  const out = new Date(d);
+  const dow = (out.getDay() + 6) % 7; // Mon=0
+  out.setDate(out.getDate() - dow);
+  out.setHours(0,0,0,0);
+  return out;
+}
+function fmtDateObj(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function completionLevel(count) {
+  if (count >= 5) return 3;
+  if (count >= 3) return 2;
+  if (count >= 1) return 1;
+  return 0;
+}
+function renderCalendar() {
+  calGridEl.innerHTML = '';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const thisWeekStart = startOfWeek(today);
+  const firstWeekStart = new Date(thisWeekStart);
+  firstWeekStart.setDate(firstWeekStart.getDate() - 7 * (WEEKS_SHOWN - 1));
+
+  // Header row
+  calGridEl.appendChild(Object.assign(document.createElement('div'), { className: 'cal-head', textContent: '' }));
+  ['M','T','W','T','F','S','S'].forEach(d => {
+    calGridEl.appendChild(Object.assign(document.createElement('div'), { className: 'cal-head', textContent: d }));
+  });
+
+  // Tally completions by date
+  const byDate = {};
+  state.completions.forEach(c => {
+    byDate[c.date] = (byDate[c.date] || 0) + 1;
+  });
+
+  // Rows: 7 weeks
+  for (let w = 0; w < WEEKS_SHOWN; w++) {
+    const weekStart = new Date(firstWeekStart);
+    weekStart.setDate(weekStart.getDate() + w * 7);
+    const weekLabel = document.createElement('div');
+    weekLabel.className = 'cal-row-label';
+    if (weekStart.getDate() <= 7) {
+      weekLabel.textContent = weekStart.toLocaleString(undefined, { month: 'short' });
+    }
+    calGridEl.appendChild(weekLabel);
+    for (let dd = 0; dd < 7; dd++) {
+      const day = new Date(weekStart);
+      day.setDate(day.getDate() + dd);
+      const ds = fmtDateObj(day);
+      const cell = document.createElement('div');
+      const isFuture = day > today;
+      const isToday = ds === fmtDateObj(today);
+      const count = byDate[ds] || 0;
+      const lvl = completionLevel(count);
+      cell.className = `cal-cell lvl${lvl}` + (isFuture ? ' empty-day' : '') + (isToday ? ' today' : '');
+      cell.dataset.date = ds;
+      cell.dataset.count = count;
+      cell.title = `${ds}: ${count} goals completed`;
+      if (selectedCalDate === ds) cell.classList.add('selected');
+      if (!isFuture) {
+        cell.addEventListener('click', () => selectDay(ds));
+      }
+      calGridEl.appendChild(cell);
+    }
+  }
+}
+function selectDay(ds) {
+  selectedCalDate = ds;
+  document.querySelectorAll('.cal-cell').forEach(c => c.classList.toggle('selected', c.dataset.date === ds));
+  const items = state.completions.filter(c => c.date === ds);
+  const d = new Date(ds + 'T00:00:00');
+  const niceDate = d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  if (items.length === 0) {
+    calDetailEl.innerHTML = `
+      <div class="cal-detail-date">${niceDate}</div>
+      <div class="cal-detail-empty">No goals completed this day.</div>`;
+  } else {
+    calDetailEl.innerHTML = `
+      <div class="cal-detail-date">${niceDate}</div>
+      <div class="cal-detail-count">${items.length} goal${items.length === 1 ? '' : 's'} completed</div>
+      <ul class="cal-detail-list">${items.map(i => `<li>${escapeHtml(i.text)}</li>`).join('')}</ul>`;
+  }
+}
+
+// ============ PROFILE UI ============
+const profileCardEl = document.getElementById('profileCard');
+const importFileEl  = document.getElementById('importFile');
+
+function renderProfile() {
+  if (currentProfile === 'guest') {
+    profileCardEl.innerHTML = `
+      <div class="who">Guest mode</div>
+      <div class="note">Sign in with an email to save your data under a separate local profile. To sync across devices, export and import the JSON file.</div>
+      <div class="signin-row">
+        <input type="email" id="emailInput" placeholder="you@example.com" />
+        <button class="primary blue" id="signInBtn">Sign in</button>
+      </div>
+    `;
+    document.getElementById('signInBtn').addEventListener('click', doSignIn);
+    document.getElementById('emailInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSignIn(); });
+  } else {
+    profileCardEl.innerHTML = `
+      <div class="who">${escapeHtml(currentProfile)}</div>
+      <div class="note">Local profile. Export to back up or move to another device.</div>
+      <div class="profile-actions">
+        <button id="exportBtn">⬇ Export</button>
+        <button id="importBtn">⬆ Import</button>
+        <button id="signOutBtn">Sign out</button>
+      </div>
+    `;
+    document.getElementById('exportBtn').addEventListener('click', exportData);
+    document.getElementById('importBtn').addEventListener('click', () => importFileEl.click());
+    document.getElementById('signOutBtn').addEventListener('click', signOut);
+  }
+}
+
+function doSignIn() {
+  const input = document.getElementById('emailInput');
+  const email = (input.value || '').trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    toast('Enter a valid email.');
+    return;
+  }
+  // Save the current state under the old profile first
+  saveState();
+  currentProfile = email;
+  setCurrentProfile(email);
+  state = loadStateFor(email);
+  currentTheme = state.theme || currentTheme;
+  remaining = modeDuration();
+  applyTheme(currentTheme);
+  renderProfile();
+  renderGoals();
+  renderCalendar();
+  refreshLoginUI();
+  updateTotals();
+  renderTimer();
+  toast(`Signed in as ${email}`);
+}
+
+function signOut() {
+  saveState();
+  currentProfile = 'guest';
+  setCurrentProfile('guest');
+  state = loadStateFor('guest');
+  currentTheme = state.theme || 'garden';
+  remaining = modeDuration();
+  applyTheme(currentTheme);
+  renderProfile();
+  renderGoals();
+  renderCalendar();
+  refreshLoginUI();
+  updateTotals();
+  renderTimer();
+  toast('Signed out.');
+}
+
+function exportData() {
+  const payload = { version: 4, profile: currentProfile, exportedAt: new Date().toISOString(), data: state };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `focus-garden-${currentProfile}-${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Export downloaded.');
+}
+
+importFileEl.addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!parsed.data) throw new Error('Missing data field');
+      if (!confirm('This will replace the current profile\'s data. Continue?')) return;
+      state = Object.assign(structuredClone(DEFAULT_STATE), parsed.data);
+      saveState();
+      currentTheme = state.theme || 'garden';
+      remaining = modeDuration();
+      applyTheme(currentTheme);
+      renderGoals();
+      renderCalendar();
+      refreshLoginUI();
+      updateTotals();
+      renderTimer();
+      toast('Import complete.');
+    } catch (err) {
+      toast('Invalid file.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = ''; // reset
+});
+
+// ============ AUDIO ============
+let audioCtx = null;
+function beep() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = audioCtx;
+  const o = ctx.createOscillator(); const g = ctx.createGain();
+  o.type = 'sine'; o.frequency.value = 880;
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.55);
+  o.connect(g).connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + 0.6);
+  setTimeout(() => {
+    const o2 = ctx.createOscillator(); const g2 = ctx.createGain();
+    o2.type = 'sine'; o2.frequency.value = 1320;
+    g2.gain.setValueAtTime(0, ctx.currentTime);
+    g2.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.02);
+    g2.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.45);
+    o2.connect(g2).connect(ctx.destination);
+    o2.start(); o2.stop(ctx.currentTime + 0.5);
+  }, 250);
+}
+
+// ============ SCENERY ============
+function spawnGrass() {
+  const layer = document.getElementById('grassLayer');
+  for (let i = 0; i < 80; i++) {
+    const blade = document.createElement('div');
+    blade.className = 'blade';
+    blade.style.left = (i / 80 * 100) + '%';
+    const h = 16 + Math.random() * 24;
+    blade.style.height = h + 'px';
+    blade.style.animationDuration = (3 + Math.random() * 3) + 's';
+    blade.style.animationDelay = (-Math.random() * 4) + 's';
+    blade.style.filter = `hue-rotate(${(Math.random()*20 - 10)|0}deg)`;
+    layer.appendChild(blade);
+  }
+}
+function spawnStars() {
+  const layer = document.getElementById('starsLayer');
+  for (let i = 0; i < 120; i++) {
+    const s = document.createElement('div');
+    s.className = 'star-bg';
+    s.style.left = (Math.random() * 100) + '%';
+    s.style.top = (Math.random() * 100) + '%';
+    const size = 1 + Math.random() * 2.2;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.animationDuration = (1.6 + Math.random() * 3) + 's';
+    s.style.animationDelay = (-Math.random() * 3) + 's';
+    s.style.opacity = (0.3 + Math.random() * 0.7).toFixed(2);
+    layer.appendChild(s);
+  }
+}
+function spawnCraters() {
+  const surface = document.getElementById('moonSurface');
+  const craters = [
+    {l:'15%', t:'30%', s:18}, {l:'40%', t:'55%', s:24}, {l:'62%', t:'25%', s:14},
+    {l:'78%', t:'50%', s:20}, {l:'30%', t:'70%', s:12}, {l:'90%', t:'70%', s:16},
+    {l:'8%', t:'70%', s:10},
+  ];
+  craters.forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'crater';
+    el.style.left = c.l;
+    el.style.top  = c.t;
+    el.style.width = c.s + 'px';
+    el.style.height = (c.s * 0.5) + 'px';
+    surface.appendChild(el);
+  });
+}
+
+// ============ SIDE PANEL ============
+const sidepanel    = document.getElementById('sidepanel');
+const spBackdrop   = document.getElementById('spBackdrop');
+const settingsToggle = document.getElementById('settingsToggle');
+const spClose      = document.getElementById('spClose');
+
+function openPanel() {
+  sidepanel.classList.add('open');
+  spBackdrop.classList.add('open');
+  sidepanel.setAttribute('aria-hidden', 'false');
+  renderMergeList();
+  renderCalendar();
+}
+function closePanel() {
+  sidepanel.classList.remove('open');
+  spBackdrop.classList.remove('open');
+  sidepanel.setAttribute('aria-hidden', 'true');
+}
+settingsToggle.addEventListener('click', openPanel);
+spClose.addEventListener('click', closePanel);
+spBackdrop.addEventListener('click', closePanel);
+
+document.querySelectorAll('.theme-opt').forEach(btn => {
+  btn.addEventListener('click', () => applyTheme(btn.dataset.theme, { showToast: true }));
+});
+
+document.getElementById('resetAllBtn').addEventListener('click', () => {
+  if (!confirm(`Clear ALL data for profile "${currentProfile}"? Cannot be undone.`)) return;
+  const keepTheme = currentTheme;
+  state = structuredClone(DEFAULT_STATE);
+  state.theme = keepTheme;
+  saveState();
+  remaining = modeDuration();
+  renderCollection();
+  renderGoals();
+  renderCalendar();
+  refreshLoginUI();
+  updateTotals();
+  renderMergeList();
+  renderModeUI();
+  renderTimer();
+  toast('Profile cleared.');
+});
+
+// ============ INIT ============
+spawnGrass();
+spawnStars();
+spawnCraters();
+applyTheme(state.theme || 'garden');
+renderModeUI();
+renderTimer();
+renderGoals();
+renderCalendar();
+renderProfile();
+refreshLoginUI();
+updateTotals();
+</script>
+</body>
+</html>
